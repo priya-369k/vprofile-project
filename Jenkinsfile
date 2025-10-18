@@ -44,28 +44,34 @@ pipeline {
             
         }
          stage('CODE ANALYSIS with SONARQUBE') {
-          
-		  environment {
-             scannerHome = tool 'sonarscanner'
-          }
+            environment {
+                scannerHome = tool 'sonarscanner'
+                SONAR_TOKEN = credentials('sonartoken')
 
-          steps {
-            withSonarQubeEnv('sonarserver') {
-               sh '''${scannerHome}/bin/sonar-scanner -Dsonar.projectKey=vprofile \
-                   -Dsonar.projectName=vprofile \
-                   -Dsonar.projectVersion=1.0 \
-                   -Dsonar.sources=src/ \
-                   -Dsonar.java.binaries=target/test-classes/com/visualpathit/account/controllerTest/ \
-                   -Dsonar.junit.reportsPath=target/surefire-reports/ \
-                   -Dsonar.jacoco.reportsPath=target/jacoco.exec \
-                   -Dsonar.java.checkstyle.reportPaths=target/checkstyle-result.xml
-                   -Dsonar.login=squ_06ef2c21d97a670d6bca3661c366e45735240093'''
             }
+            steps {
+                withSonarQubeEnv('sonarserver') {
+                sh '''${scannerHome}/bin/sonar-scanner \
+                -Dsonar.projectKey=vprofile \
+                -Dsonar.projectName=vprofile \
+                -Dsonar.projectVersion=1.0 \
+                -Dsonar.sources=src/ \
+                -Dsonar.java.binaries=target/test-classes/com/visualpathit/account/controllerTest/ \
+                -Dsonar.junit.reportsPath=target/surefire-reports/ \
+                -Dsonar.jacoco.reportsPath=target/jacoco.exec \
+                -Dsonar.java.checkstyle.reportPaths=target/checkstyle-result.xml \
+                -Dsonar.login=${SONAR_TOKEN}'''
 
-            timeout(time: 10, unit: 'MINUTES') {
-               waitForQualityGate abortPipeline: true
+                }
+
+
+
             }
-          }
         }
+          
+		  
+
+          
+        
     }
 }

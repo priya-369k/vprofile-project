@@ -20,6 +20,10 @@ pipeline {
         registryCredential = 'ecr:us-east-1:AWScreds'
         appRegistry = '017780287873.dkr.ecr.us-east-1.amazonaws.com/vproappimage'
         vprofileRegistry = 'https://017780287873.dkr.ecr.us-east-1.amazonaws.com'
+        cluster = "vproappstage"
+        service = "vproapptask-service-qj7qa2jz"
+
+
         
     }
 
@@ -106,6 +110,14 @@ pipeline {
                         dockerImage.push("latest")
                     }
                 }
+            }
+        }
+        stage('Deploy to staging ECS'){
+            steps{
+                withAWS(credentials: 'AWScreds', region: 'us-east-1'){
+                    sh 'aws ecs update-service --cluster $(cluster) --service $(service) --force-new-deployment'
+                }
+
             }
         }
 

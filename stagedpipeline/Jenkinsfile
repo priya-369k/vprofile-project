@@ -17,11 +17,11 @@ pipeline {
         NEXUS_LOGIN = 'nexuslogin'
         SONARSERVER = 'sonarserver'
         SONARSCANNER = 'sonarscanner'
-        registryCredential = 'ecr:us-east-1:AWScreds'
-        appRegistry = '017780287873.dkr.ecr.us-east-1.amazonaws.com/vproappimage'
-        vprofileRegistry = 'https://017780287873.dkr.ecr.us-east-1.amazonaws.com'
-        cluster = "vproappstage"
-        service = "vproapptask-service-qj7qa2jz"
+        registryCredential = 'ecr:<REGION>:<Name of credentials given in Jenkins UI>'
+        appRegistry = '<URI of ECR>'
+        vprofileRegistry = '<URL of ECR>'
+        cluster = "<Name of cluster>"
+        service = "<Name of service created inside cluster>"
 
 
         
@@ -97,7 +97,7 @@ pipeline {
         stage("Build App Image"){
             steps{
                 script{
-                    dockerImage = docker.build( appRegistry + ":$BUILD_NUMBER","./Docker-files/app/multistage/" )
+                    dockerImage = docker.build(<IMAGE NAME>+ ":<TAG NNAME>","<PATH to DOCKER FILE>" )
                 
                 }
             }

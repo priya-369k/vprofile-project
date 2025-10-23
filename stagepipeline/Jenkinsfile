@@ -26,8 +26,16 @@ pipeline {
 
         
     }
+    
 
     stages {
+        stage('Cleanup') {
+            steps {
+                sh 'docker system prune -a --volumes -f'
+                sh 'rm -rf ~/.m2/repository/*'
+            }
+        }
+        
         stage('Build'){
             steps {
                 sh 'mvn -s settings.xml -DskipTests install'
@@ -120,6 +128,7 @@ pipeline {
 
             }
         }
+        
 
           
 		  

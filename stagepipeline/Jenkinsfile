@@ -3,6 +3,8 @@ pipeline {
     tools {
         maven "MAVEN3.9"
         jdk "JDK17"
+        nodejs 'node18'
+
     }
     
     environment {
@@ -35,7 +37,7 @@ pipeline {
                 sh 'rm -rf ~/.m2/repository/*'
             }
         }
-        
+
         stage('Build'){
             steps {
                 sh 'mvn -s settings.xml -DskipTests install'

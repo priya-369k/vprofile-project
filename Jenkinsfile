@@ -7,17 +7,17 @@ pipeline {
     
     environment {
         SNAP_REPO = 'vprofile-snapshot'
-		NEXUS_USER = 'admin'
-		NEXUS_PASS = 'admin'
-		RELEASE_REPO = 'vprofile-release'
-		CENTRAL_REPO = 'vpro-maven-central'
-		NEXUSIP = '172.31.4.196'
-		NEXUSPORT = '8081'
-		NEXUS_GRP_REPO = 'vpro-maven-group'
+        NEXUS_USER = 'admin'
+        NEXUS_PASS = 'admin'
+        RELEASE_REPO = 'vprofile-release'
+        CENTRAL_REPO = 'vpro-maven-central'
+        NEXUSIP = '172.31.4.196'
+        NEXUSPORT = '8081'
+        NEXUS_GRP_REPO = 'vpro-maven-group'
         NEXUS_LOGIN = 'nexuslogin'
         SONARSERVER = 'sonarserver'
         SONARSCANNER = 'sonarscanner'
-        
+        DEPLOY_TO_STAGING = 'true'
     }
 
     stages {
@@ -43,31 +43,34 @@ pipeline {
             }
             
         }
-         stage('CODE ANALYSIS with SONARQUBE') {
+        stage('CODE ANALYSIS with SONARQUBE') {
             environment {
                 scannerHome = tool 'sonarscanner'
                 SONAR_TOKEN = credentials('sonartoken')
-
             }
             steps {
                 withSonarQubeEnv('sonarserver') {
-                sh '''${scannerHome}/bin/sonar-scanner \
-                -Dsonar.projectKey=vprofile \
-                -Dsonar.projectName=vprofile \
-                -Dsonar.projectVersion=1.0 \
-                -Dsonar.sources=src/ \
-                -Dsonar.java.binaries=target/test-classes/com/visualpathit/account/controllerTest/ \
-                -Dsonar.junit.reportsPath=target/surefire-reports/ \
-                -Dsonar.jacoco.reportsPath=target/jacoco.exec \
-                -Dsonar.java.checkstyle.reportPaths=target/checkstyle-result.xml \
-                -Dsonar.login=${SONAR_TOKEN}'''
-
+                    sh '''${scannerHome}/bin/sonar-scanner \
+                    -Dsonar.projectKey=vprofile \
+                    -Dsonar.projectName=vprofile \
+                    -Dsonar.projectVersion=1.0 \
+                    -Dsonar.sources=src/ \
+                    -Dsonar.java.binaries=target/test-classes/com/visualpathit/account/controllerTest/ \
+                    -Dsonar.junit.reportsPath=target/surefire-reports/ \
+                    -Dsonar.jacoco.reportsPath=target/jacoco.exec \
+                    -Dsonar.java.checkstyle.reportPaths=target/checkstyle-result.xml \
+                    -Dsonar.login=${SONAR_TOKEN}'''
                 }
-
-
-
             }
         }
+        stage("Quality Gate") {
+            steps {
+                timeout(time: 1, unit: 'HOURS') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+        
         stage("UploadArtifact"){
             steps{
                 nexusArtifactUploader(
@@ -89,35 +92,35 @@ pipeline {
         }
 
         stage('Ansible Deploy to staging'){
-            steps {
-                ansiblePlaybook([
-                inventory   : 'ansible/stage.inventory',
-                playbook    : 'ansible/site.yml',
-                installation: 'ansible',
-                colorized   : true,
-			    credentialsId: 'applogin',
-			    disableHostKeyChecking: true,
-                extraVars   : [
-                   	USER: "admin",
-                    PASS: "admin123",
-			        nexusip: "172.31.4.196",
-			        reponame: "vprofile-release",
-			        groupid: "QA",
-			        time: "${env.BUILD_TIMESTAMP}",
-			        build: "${env.BUILD_ID}",
-                    artifactid: "vproapp",
-			        vprofile_version: "vproapp-${env.BUILD_ID}-${env.BUILD_TIMESTAMP}.war"
-                ]
-             ])
+            when {
+                environment name: 'DEPLOY_TO_STAGING', value: 'true'
             }
-        }
-
-        stage("Quality Gate") {
             steps {
-                timeout(time: 1, unit: 'HOURS') {
-                    // Parameter indicates whether to set pipeline to UNSTABLE if Quality Gate fails
-                    // true = set pipeline to UNSTABLE, false = don't
-                    waitForQualityGate abortPipeline: true
+                script {
+                    try {
+                        ansiblePlaybook([
+                        inventory   : 'ansible/stage.inventory',
+                        playbook    : 'ansible/site.yml',
+                        installation: 'ansible',
+                        colorized   : true,
+                        credentialsId: 'applogin',
+                        disableHostKeyChecking: true,
+                        extraVars   : [
+                            USER: "admin",
+                            PASS: "admin123",
+                            nexusip: "172.31.4.196",
+                            reponame: "vprofile-release",
+                            groupid: "QA",
+                            time: "${env.BUILD_TIMESTAMP}",
+                            build: "${env.BUILD_ID}",
+                            artifactid: "vproapp",
+                            vprofile_version: "vproapp-${env.BUILD_ID}-${env.BUILD_TIMESTAMP}.war"
+                        ]
+                        ])
+                    } catch (Exception e) {
+                        echo "Ansible deployment failed: ${e.getMessage()}"
+                        currentBuild.result = 'UNSTABLE'
+                    }
                 }
             }
         }

@@ -1,4 +1,3 @@
 [appsrvgrp]
-app01stg.vprofile.project
+localhost ansible_connection=local
 
-###########

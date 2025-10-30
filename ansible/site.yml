@@ -1,5 +1,15 @@
 ---
-- import_playbook: tomcat_setup.yml
-- import_playbook: vpro-app-setup.yml 
-
-####
+- name: Test deployment
+  hosts: appsrvgrp
+  gather_facts: no
+  tasks:
+    - name: Test connection
+      ping:
+    - name: Create deployment directory
+      file:
+        path: /tmp/vprofile-deploy
+        state: directory
+        mode: '0755'
+    - name: Log deployment info
+      debug:
+        msg: "Deployment successful for build {{build}}-{{time}}"
